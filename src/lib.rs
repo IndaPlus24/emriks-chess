@@ -10,20 +10,20 @@ pub enum GameState {
     GameOver,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Colour {
     White,
     Black,
 }
 
-#[derive(Clone, Debug)]
-struct Piece {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Piece {
     color: Colour,
     piece_type: PieceType,
 }
 
-#[derive(Clone, Debug)]
-enum PieceType {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum PieceType {
     PAWN,
     ROOK,
     BISHOP,
@@ -91,8 +91,31 @@ impl Game {
 
     /// If the current game state is InProgress and the move is legal,
     /// move a piece and return the resulting state of the game.
-    pub fn make_move(&mut self, from: String, to: String) -> Option<GameState> {
-        let mut vec: Vec<String> = Vec::with_capacity(60);
+    /// I have changed from it having String parameters to Vec parameters
+    pub fn make_move(&mut self, from: Vec<usize>, to: Vec<usize>) -> Option<GameState> {
+        //let mut vec: Vec<String> = Vec::with_capacity(60);
+        
+        // Check gamestate
+        if self.get_game_state() == GameState::GameOver {
+            return Some(GameState::GameOver);
+        }
+
+        // Get piece from to
+        let piece_option = self.board[from[0]][from[1]];
+
+        // Check if there is a piece there
+        if piece_option == None {
+            return Some(GameState::GameOver);
+        }
+        let piece = piece_option.unwrap();
+
+        // Check if legal
+        let legal_moves = self.get_possible_moves(&from);
+
+        // Update board
+        self.board[to[0]][to[1]] = Some(piece);
+        self.board[from[0]][from[1]] = None;
+
 
         None
     }
@@ -111,7 +134,96 @@ impl Game {
     /// new positions of that piece. Don't forget to the rules for check.
     ///
     /// (optional) Don't forget to include en passent and castling.
-    pub fn get_possible_moves(&self, postion: String) -> Option<Vec<String>> {
+    /// I have changed from params being String to &Vec<usize> and return value to Option<Vec<Vec<usize>>>
+    pub fn get_possible_moves(&self, position: &Vec<usize>) -> Option<Vec<Vec<usize>>> {
+        let piece = self.board[position[0]][position[1]].unwrap();
+        
+        if piece.piece_type == PieceType::ROOK {
+
+            let mut movement_positions: Vec<Vec<usize>> = vec![];
+            let mut blocking_pieces_positions: Vec<Vec<usize>> = vec![];
+            let mut forbidden_positions: Vec<Vec<usize>> = vec![];
+
+            for x in 0..8 {
+                for y in 0..8 {
+                    //movement:
+                    if position[0] == y || position[1] == x {
+                        //It is on the same row or column
+                        movement_positions.push(vec![y,x]);
+
+                        match self.board[y][x] {
+                            Some(value) => blocking_pieces_positions.push(vec![y,x]),
+                            None => {},   
+                        }
+                    }
+                }
+            }
+
+            let piece_index_block = blocking_pieces_positions.iter().position(|pos| pos == position).unwrap();
+            blocking_pieces_positions.remove(piece_index_block);
+            let piece_index_movment = movement_positions.iter().position(|pos| pos == position).unwrap();
+            movement_positions.remove(piece_index_movment);
+
+            for blocking_position in blocking_pieces_positions {
+                if blocking_position[0] == position[0] {
+                    //On the same row
+                    if blocking_position[1] > position[1] {
+                        for x in blocking_position[1]+1..8 {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![blocking_position[0], x]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                    else {
+                        for x in 0..blocking_position[1] {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![blocking_position[0], x]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                }
+                else if blocking_position[1] == position[1] {
+                    //On the same column
+                    if blocking_position[0] > position[0] {
+                        for y in blocking_position[0]+1..8 {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, blocking_position[1]]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                    else {
+                        for y in 0..blocking_position[0] {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, blocking_position[1]]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Find forbidden positions
+
+            //Shouldn't be able to attack own color
+            for pos in &movement_positions {
+                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                    if board_piece.color == piece.color {
+                        forbidden_positions.push(pos.clone());
+                    }
+                }
+            }
+
+            
+
+            //remove forbidden
+
+            movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            return Some(movement_positions);
+
+        }
+
+
+
         None
     }
 }
@@ -146,29 +258,10 @@ mod tests {
     use super::Game;
     use super::GameState;
 
-    // check test framework
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-
-    // example test
-    // check that game state is in progress after initialisation
-    #[test]
-    fn game_in_progress_after_init() {
-        let game = Game::new();
-
-        println!("{:?}", game);
-
-        assert_eq!(game.get_game_state(), GameState::InProgress);
-    }
-
-    #[test]
-    fn display_board_starting_position() {
-        let game = Game::new();
-
+    //Auxilirary functions
+    fn print_board(game: &Game){
         //Prints the board:
-        println!("");
+        /*println!("");
         for i in 0..8 {
             print!("|-----------|\t");
         }
@@ -191,8 +284,140 @@ mod tests {
                 print!("|-----------|\t")
             }
             
+        }*/
+        println!("");
+        print!("|");
+        for i in 0..8 {
+            print!("-----");
+        }
+        print!("|");
+        for item in &game.board {
+            println!("");
+            print!("|");
+            for item_inner in item {
+                print!(" ");
+                match item_inner {
+                    Some(piece) => {
+                        print!("{}", format!("{:?}", piece.color).chars().next().unwrap());
+                        print!("-");
+                        print!("{}", format!("{:?}", piece.piece_type).chars().next().unwrap());
+                    }, 
+                    None => print!("---"),
+                }
+                
+                print!(" ");
+            }
+            print!("|");
+            
+        }
+        println!("");
+        print!("|");
+        for i in 0..8 {
+            print!("-----");
+        }
+        print!("|");
+
+        println!("\n\n")
+
+    }
+
+    fn print_board_moves(game: &Game, position: &Vec<usize>){
+
+        let legal_moves = game.get_possible_moves(position);
+
+
+        println!("");
+        print!("|");
+        for i in 0..8 {
+            print!("-----");
         }
 
+        for y in 0..8 {
+            println!("");
+            print!("|");
+            for x in 0..8 {
+                print!(" ");
+            
+                if let Some(index) = legal_moves.clone().unwrap().iter().position(|pos| pos == &vec![y as usize, x as usize]){
+                    print!("[-]");
+                }
+                else {
+                    match game.board[y][x] {
+                        Some(piece) => {
+                            print!("{}", format!("{:?}", piece.color).chars().next().unwrap());
+                            print!("-");
+                            print!("{}", format!("{:?}", piece.piece_type).chars().next().unwrap());
+                        }, 
+                        None => print!("---"),
+                    }
+                }
+                print!(" ");
+                
+            }
+            print!("|");
+        }
+        println!("");
+        print!("|");
+        for i in 0..8 {
+            print!("-----");
+        }
+        print!("|");
+
+        println!("\n\n");
+
+    }
+
+    // check test framework
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+
+    // example test
+    // check that game state is in progress after initialisation
+    #[test]
+    fn game_in_progress_after_init() {
+        let game = Game::new();
+
+        println!("{:?}", game);
+
+        assert_eq!(game.get_game_state(), GameState::InProgress);
+    }
+
+    #[test]
+    fn display_board_starting_position() {
+        let game = Game::new();
+
+        print_board(&game);
+
         assert_eq!("fill with data", "fill with data");
+    }
+
+    #[test]
+    fn move_piece() {
+        let mut game = Game::new();
+        print_board(&game);
+        game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 3 as usize]);
+        print_board(&game);
+        game.make_move(vec![3 as usize, 3 as usize], vec![6 as usize, 3 as usize]);
+        print_board(&game);
+        game.make_move(vec![6 as usize, 3 as usize], vec![2 as usize, 5 as usize]);
+        print_board(&game);
+    }
+
+    #[test]
+    fn movement_options_rook() {
+        let mut game = Game::new();
+        print_board(&game);
+        print_board_moves(&game, &vec![0,0]);
+        game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 6 as usize]);
+        print_board(&game);
+        print_board_moves(&game, &vec![3,6]);
+        game.make_move(vec![3 as usize, 6 as usize], vec![6 as usize, 3 as usize]);
+        print_board(&game);
+        print_board_moves(&game, &vec![6,3]);
+        game.make_move(vec![6 as usize, 3 as usize], vec![7 as usize, 5 as usize]);
+        print_board(&game);
+        print_board_moves(&game, &vec![7,5]);
     }
 }
