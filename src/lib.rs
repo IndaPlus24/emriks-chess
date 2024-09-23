@@ -105,19 +105,28 @@ impl Game {
 
         // Check if there is a piece there
         if piece_option == None {
-            return Some(GameState::GameOver);
+            return None;
         }
         let piece = piece_option.unwrap();
 
         // Check if legal
-        let legal_moves = self.get_possible_moves(&from);
+        let legal_moves_option = self.get_possible_moves(&from);
+        match legal_moves_option {
+            Some(legal_moves) => {
+                if !legal_moves.contains(&to) {
+                    //to isn't part of legal moves
+                    return None;
+                }
+            },
+            None => return None,
+        }
 
         // Update board
         self.board[to[0]][to[1]] = Some(piece);
         self.board[from[0]][from[1]] = None;
 
 
-        None
+        return Some(GameState::InProgress);
     }
 
     /// Set the piece type that a peasant becames following a promotion.
@@ -138,6 +147,9 @@ impl Game {
     pub fn get_possible_moves(&self, position: &Vec<usize>) -> Option<Vec<Vec<usize>>> {
         let piece = self.board[position[0]][position[1]].unwrap();
         
+        // ==========================
+        // ROOK:
+
         if piece.piece_type == PieceType::ROOK {
 
             let mut movement_positions: Vec<Vec<usize>> = vec![];
@@ -223,6 +235,66 @@ impl Game {
         }
 
 
+        // ==========================
+        // PAWN:
+
+        if piece.piece_type == PieceType::PAWN {
+
+            let mut movement_positions: Vec<Vec<usize>> = vec![];
+            let mut blocking_pieces_positions: Vec<Vec<usize>> = vec![];
+            let mut forbidden_positions: Vec<Vec<usize>> = vec![];
+
+            for x in 0..8 {
+                for y in 0..8 {
+                    //movement:
+                    if position[1] == x && ((piece.color == Colour::Black && position[0] < y) || (piece.color == Colour::White && position[0] > y)) {
+                        //If is on the same column and ahead of the pawn
+                        //Black can move go downwards and white can only move upwards
+
+                        let dist = (position[0] as i32 - y as i32).abs();
+                        
+                        match dist {
+                            1 => movement_positions.push(vec![y,x]),
+                            2 => {
+                                if (piece.color == Colour::Black && position[0] == 1 && self.board[y-1][x].is_none()) || (piece.color == Colour::White && position[0] == 6 && self.board[y+1][x].is_none()){
+                                    //The double movement is not blocked by a piece right in front of the pawn
+                                    movement_positions.push(vec![y,x]);
+                                }
+                                else {
+                                    break;
+                                }  
+                            },
+                            _ => break
+                        }
+
+                        match self.board[y][x] {
+                            Some(value) => blocking_pieces_positions.push(vec![y,x]),
+                            None => {},   
+                        }
+                    }
+                }
+            }
+
+            // Find forbidden positions
+
+            //Shouldn't be able to attack own color
+            for pos in &movement_positions {
+                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                    if board_piece.color == piece.color {
+                        forbidden_positions.push(pos.clone());
+                    }
+                }
+            }
+
+            
+
+            //remove forbidden
+
+            movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            return Some(movement_positions);
+
+        }
 
         None
     }
@@ -395,20 +467,58 @@ mod tests {
 
     #[test]
     fn move_piece() {
-        let mut game = Game::new();
+        /*let mut game = Game::new();
         print_board(&game);
-        game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 3 as usize]);
+        match game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 3 as usize]) {
+            Some(action) => {
+                if action != GameState::InProgress {
+                    println!("SOMETHING IS GOING ON");
+                    return;
+                }
+            },
+            None => {
+                println!("Illegal move!");
+                return;
+            }
+        }
         print_board(&game);
         game.make_move(vec![3 as usize, 3 as usize], vec![6 as usize, 3 as usize]);
         print_board(&game);
         game.make_move(vec![6 as usize, 3 as usize], vec![2 as usize, 5 as usize]);
-        print_board(&game);
+        print_board(&game);*/
     }
 
     #[test]
     fn movement_options_rook() {
         let mut game = Game::new();
+
         print_board(&game);
+        print_board_moves(&game, &vec![1,0]);
+        game.make_move(vec![1, 0], vec![2, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![2,0]);
+        game.make_move(vec![2, 0], vec![3, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![3,0]);
+        print_board_moves(&game, &vec![0,0]);
+        game.make_move(vec![0, 0], vec![2, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![2,0]);
+        
+
+        /*print_board(&game);
+        print_board_moves(&game, &vec![0,0]);
+        game.make_move(vec![1, 0], vec![2, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![0,0]);
+        game.make_move(vec![2, 0], vec![3, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![0,0]);
+        game.make_move(vec![0, 0], vec![2, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![2,0]);*/
+
+        /*print_board(&game);
         print_board_moves(&game, &vec![0,0]);
         game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 6 as usize]);
         print_board(&game);
@@ -418,6 +528,6 @@ mod tests {
         print_board_moves(&game, &vec![6,3]);
         game.make_move(vec![6 as usize, 3 as usize], vec![7 as usize, 5 as usize]);
         print_board(&game);
-        print_board_moves(&game, &vec![7,5]);
+        print_board_moves(&game, &vec![7,5]);*/
     }
 }
