@@ -252,6 +252,12 @@ impl Game {
                         //Black can move go downwards and white can only move upwards
 
                         let dist = (position[0] as i32 - y as i32).abs();
+                        print!("pos0: {}", position[0]);
+                        print!(" y: {}", y);
+                        print!(" dist: {}", dist);
+                        print!("  ");
+
+                        
                         
                         match dist {
                             1 => movement_positions.push(vec![y,x]),
@@ -261,10 +267,10 @@ impl Game {
                                     movement_positions.push(vec![y,x]);
                                 }
                                 else {
-                                    break;
+                                    continue;
                                 }  
                             },
-                            _ => break
+                            _ => continue
                         }
 
                         match self.board[y][x] {
@@ -274,6 +280,9 @@ impl Game {
                     }
                 }
             }
+
+            //remove blocking
+            movement_positions.retain(|pos| !blocking_pieces_positions.contains(pos));
 
             // Find forbidden positions
 
@@ -408,7 +417,12 @@ mod tests {
             println!("");
             print!("|");
             for x in 0..8 {
-                print!(" ");
+                if y == position[0] && x == position[1] {
+                    print!("(");
+                }
+                else {
+                    print!(" ");
+                }
             
                 if let Some(index) = legal_moves.clone().unwrap().iter().position(|pos| pos == &vec![y as usize, x as usize]){
                     print!("[-]");
@@ -423,7 +437,12 @@ mod tests {
                         None => print!("---"),
                     }
                 }
-                print!(" ");
+                if y == position[0] && x == position[1] {
+                    print!(")");
+                }
+                else {
+                    print!(" ");
+                }
                 
             }
             print!("|");
@@ -494,16 +513,20 @@ mod tests {
 
         print_board(&game);
         print_board_moves(&game, &vec![1,0]);
-        game.make_move(vec![1, 0], vec![2, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![2,0]);
-        game.make_move(vec![2, 0], vec![3, 0]);
+        game.make_move(vec![1, 0], vec![3, 0]);
         print_board(&game);
         print_board_moves(&game, &vec![3,0]);
-        print_board_moves(&game, &vec![0,0]);
-        game.make_move(vec![0, 0], vec![2, 0]);
+        print_board_moves(&game, &vec![6,0]);
+        game.make_move(vec![3, 0], vec![4, 0]);
         print_board(&game);
-        print_board_moves(&game, &vec![2,0]);
+        print_board_moves(&game, &vec![4,0]);
+        print_board_moves(&game, &vec![6,0]);
+        game.make_move(vec![4, 0], vec![5, 0]);
+        print_board(&game);
+        print_board_moves(&game, &vec![5,0]);
+        print_board_moves(&game, &vec![6,0]);
+        
+        
         
 
         /*print_board(&game);
