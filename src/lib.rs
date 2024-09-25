@@ -241,6 +241,7 @@ impl Game {
         if piece.piece_type == PieceType::PAWN {
 
             let mut movement_positions: Vec<Vec<usize>> = vec![];
+            let mut attack_positions: Vec<Vec<usize>> = vec![];
             let mut blocking_pieces_positions: Vec<Vec<usize>> = vec![];
             let mut forbidden_positions: Vec<Vec<usize>> = vec![];
 
@@ -278,11 +279,30 @@ impl Game {
                             None => {},   
                         }
                     }
+                    
+                    //diagonal (pawn attack squares)
+                    else if position[1] == x+1 || position[1] == ((x as i32)-1) as usize {
+                        if piece.color == Colour::Black && position[0] == ((y as i32)-1) as usize {
+                            if let Some(board_piece) = self.board[y][x] {
+                                attack_positions.push(vec![y,x]);
+                            }
+                            
+                        }
+                        else if piece.color == Colour::White && position[0] == y+1 {
+                            if let Some(board_piece) = self.board[y][x] {
+                                attack_positions.push(vec![y,x]);
+                            }
+                        } 
+                    }
                 }
             }
 
             //remove blocking
             movement_positions.retain(|pos| !blocking_pieces_positions.contains(pos));
+
+
+            //add attack 
+            movement_positions.extend(attack_positions);
 
             // Find forbidden positions
 
@@ -524,6 +544,10 @@ mod tests {
         game.make_move(vec![4, 0], vec![5, 0]);
         print_board(&game);
         print_board_moves(&game, &vec![5,0]);
+        print_board_moves(&game, &vec![6,0]);
+        game.make_move(vec![5, 0], vec![6, 1]);
+        print_board(&game);
+        print_board_moves(&game, &vec![6,1]);
         print_board_moves(&game, &vec![6,0]);
         
         
