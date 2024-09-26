@@ -345,18 +345,22 @@ impl Game {
                     if blocking_position[0] < position[0] {
                         let mut y = blocking_position[0];
                         for x in blocking_position[1]+1..8 {
-                            y-=1;
-                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
-                                movement_positions.remove(index);
+                            if y > 0 {
+                                y-=1;
+                                if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
+                                    movement_positions.remove(index);
+                                }
                             }
                         }
                     }
                     else {
                         let mut x = blocking_position[1];
                         for y in blocking_position[0]+1..8 {
-                            x-=1;
-                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
-                                movement_positions.remove(index);
+                            if x > 0 {
+                                x-=1;
+                                if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
+                                    movement_positions.remove(index);
+                                }
                             }
                         }
                     }
@@ -387,7 +391,6 @@ impl Game {
             }
 
             // Find forbidden positions
-
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
                 if let Some(board_piece) = self.board[pos[0]][pos[1]] {
@@ -397,14 +400,151 @@ impl Game {
                 }
             }
 
-            
-
             //remove forbidden
-
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
 
             return Some(movement_positions);
+        }
 
+        // ==========================
+        // QUEEN:
+
+        if piece.piece_type == PieceType::QUEEN {
+
+            let mut movement_positions: Vec<Vec<usize>> = vec![];
+            let mut blocking_pieces_positions: Vec<Vec<usize>> = vec![];
+            let mut forbidden_positions: Vec<Vec<usize>> = vec![];
+
+            for x in 0..8 {
+                for y in 0..8 {
+                    //movement:
+                    if y+x == position[0]+position[1] || (y as i32)-(x as i32) == ((position[0] as i32) - (position[1] as i32)) {
+                        //It is on the same diagonal
+                        movement_positions.push(vec![y,x]);
+
+                        match self.board[y][x] {
+                            Some(value) => blocking_pieces_positions.push(vec![y,x]),
+                            None => {},   
+                        }
+                    }
+                    else if position[0] == y || position[1] == x {
+                        //It is on the same row or column
+                        movement_positions.push(vec![y,x]);
+
+                        match self.board[y][x] {
+                            Some(value) => blocking_pieces_positions.push(vec![y,x]),
+                            None => {},   
+                        }
+                    }
+                }
+            }
+
+            let piece_index_block = blocking_pieces_positions.iter().position(|pos| pos == position).unwrap();
+            blocking_pieces_positions.remove(piece_index_block);
+            let piece_index_movment = movement_positions.iter().position(|pos| pos == position).unwrap();
+            movement_positions.remove(piece_index_movment);
+
+            for blocking_position in blocking_pieces_positions {
+                //diagonal:
+                if blocking_position[0]+blocking_position[1] == position[0]+position[1] {
+                    //The blocking piece is on the bottom-left to top-right diagonal
+                    if blocking_position[0] < position[0] {
+                        let mut y = blocking_position[0];
+                        for x in blocking_position[1]+1..8 {
+                            if y > 0 {
+                                y-=1;
+                                if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
+                                    movement_positions.remove(index);
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        let mut x = blocking_position[1];
+                        for y in blocking_position[0]+1..8 {
+                            if x > 0 {
+                                x-=1;
+                                if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
+                                    movement_positions.remove(index);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (blocking_position[0] as i32)-(blocking_position[1] as i32) == ((position[0] as i32) - (position[1] as i32)) {
+                    //The blocking piece is on the top-left to bottom-right diagonal
+                    if blocking_position[0] < position[0] {
+                        let mut y = (blocking_position[0] as i32)-(blocking_position[1] as i32);
+                        for x in 0..blocking_position[1] {
+                            if y >= 0 {
+                                if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y as usize, x]) { 
+                                    movement_positions.remove(index);
+                                }
+                            }
+                            y+=1;
+                        }
+                    }
+                    else {
+                        let mut x = blocking_position[1];
+                        for y in blocking_position[0]+1..8 {
+                            x+=1;
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, x]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                }
+                //straight:
+                else if blocking_position[0] == position[0] {
+                    //On the same row
+                    if blocking_position[1] > position[1] {
+                        for x in blocking_position[1]+1..8 {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![blocking_position[0], x]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                    else {
+                        for x in 0..blocking_position[1] {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![blocking_position[0], x]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                }
+                else if blocking_position[1] == position[1] {
+                    //On the same column
+                    if blocking_position[0] > position[0] {
+                        for y in blocking_position[0]+1..8 {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, blocking_position[1]]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                    else {
+                        for y in 0..blocking_position[0] {
+                            if let Some(index) = movement_positions.iter().position(|pos| pos == &vec![y, blocking_position[1]]) { 
+                                movement_positions.remove(index);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Find forbidden positions
+            //Shouldn't be able to attack own color
+            for pos in &movement_positions {
+                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                    if board_piece.color == piece.color {
+                        forbidden_positions.push(pos.clone());
+                    }
+                }
+            }
+
+            //remove forbidden
+            movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            return Some(movement_positions);
         }
 
 
@@ -615,8 +755,22 @@ mod tests {
     fn movement() {
         let mut game = Game::new();
 
-
         print_board(&game);
+        print_board_moves(&game, &vec![7,3]);
+        print_board_moves(&game, &vec![0,3]);
+        game.make_move(vec![1, 4], vec![3, 4]);
+        print_board_moves(&game, &vec![0,3]);
+        game.make_move(vec![0, 3], vec![2, 5]);
+        print_board_moves(&game, &vec![2,5]);
+        game.make_move(vec![6, 4], vec![5, 4]);
+        print_board_moves(&game, &vec![7,3]);
+        game.make_move(vec![7, 3], vec![4, 6]);
+        print_board_moves(&game, &vec![4,6])
+        //game.make_move(vec![0, 3], vec![, 4]);
+        
+        
+        
+        /*print_board(&game);
         print_board_moves(&game, &vec![7,2]);
         game.make_move(vec![6, 3], vec![5, 3]);
         game.make_move(vec![7, 2], vec![4, 5]);
@@ -624,7 +778,7 @@ mod tests {
         game.make_move(vec![4, 5], vec![5, 4]);
         print_board(&game);
         print_board_moves(&game, &vec![5,4]);
-        //print_board_moves(&game, &vec![0,5]);
+        //print_board_moves(&game, &vec![0,5]);*/
 
 
         /*print_board(&game);
