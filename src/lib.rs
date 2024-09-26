@@ -140,6 +140,14 @@ impl Game {
         self.board[to[0]][to[1]] = Some(piece);
         self.board[from[0]][from[1]] = None;
 
+
+        // Change active_color
+        if self.active_colour == Colour::White {
+            self.active_colour = Colour::Black;
+        }
+        else {
+            self.active_colour = Colour::White;
+        }
         
 
         // Check if it is Check
@@ -1119,186 +1127,71 @@ mod tests {
     }
 
     #[test]
-    fn display_board_starting_position() {
+    fn white_active_color_after_init() {
         let game = Game::new();
-
-        print_board(&game);
-
-        assert_eq!("fill with data", "fill with data");
+        assert_eq!(game.active_colour, Colour::White);
     }
 
     #[test]
-    fn move_piece() {
-        /*let mut game = Game::new();
-        print_board(&game);
-        match game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 3 as usize]) {
-            Some(action) => {
-                if action != GameState::InProgress {
-                    println!("SOMETHING IS GOING ON");
-                    return;
-                }
-            },
-            None => {
-                println!("Illegal move!");
-                return;
-            }
-        }
-        print_board(&game);
-        game.make_move(vec![3 as usize, 3 as usize], vec![6 as usize, 3 as usize]);
-        print_board(&game);
-        game.make_move(vec![6 as usize, 3 as usize], vec![2 as usize, 5 as usize]);
-        print_board(&game);*/
-    }
-
-    #[test]
-    fn movement() {
+    fn set_promotion_type() {
         let mut game = Game::new();
-
-        println!("{:?}", game);
-
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![1,5]);
-        println!("{:?}", game.make_move(vec![1, 5], vec![2, 5]));
-        print_board(&game);
-        println!("{:?}", game.make_move(vec![0, 4], vec![1, 5]));
-        print_board(&game);
-        println!("{:?}", game.make_move(vec![1, 5], vec![2, 4]));
-        print_board(&game);
-        println!("{:?}", game.make_move(vec![2, 4], vec![3, 4]));
-        print_board(&game);
-        print_board_moves(&game, &vec![3,4]);
-        println!("{:?}", game.make_move(vec![6, 4], vec![5, 4]));
-        print_board(&game);
-        println!("{:?}", game.make_move(vec![7, 3], vec![3, 7]));
-        print_board(&game);
-        game.board[2][5] = Some(Piece {
-            color: Colour::Black,
-            piece_type: PieceType::ROOK,
-        });
-        print_board(&game);
-        print_board_moves(&game, &vec![3,4]);
-        print_board_moves(&game, &vec![2,5]);
-        print_board_moves(&game, &vec![3,7]);
-        game.board[4][1] = Some(Piece {
-            color: Colour::Black,
-            piece_type: PieceType::KING,
-        });
-        print_board(&game);
-        print_board_moves(&game, &vec![4,1]);*/
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![7,3]);
-        game.make_move(vec![6, 4], vec![5, 4]);
-        print_board_moves(&game, &vec![7,3]);
-        print_board_moves(&game, &vec![1,5]);
-        game.make_move(vec![7, 3], vec![3, 7]);
-        print_board_moves(&game, &vec![3,7]);
-        print_board_moves(&game, &vec![1,5]);*/
-
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![7,1]);
-        print_board_moves(&game, &vec![0,6]);
-        game.make_move(vec![7, 1], vec![5, 2]);
-        print_board_moves(&game, &vec![5,2]);
-        game.make_move(vec![5, 2], vec![3, 3]);
-        print_board_moves(&game, &vec![3,3]);
-        game.make_move(vec![0, 6], vec![2, 5]);
-        print_board_moves(&game, &vec![2,5]);
-        game.make_move(vec![2, 5], vec![3, 7]);
-        print_board_moves(&game, &vec![3,7]);*/
-
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![7,4]);
-        print_board_moves(&game, &vec![0,4]);
-        game.make_move(vec![6, 4], vec![4, 4]);
-        print_board_moves(&game, &vec![7,4]);
-        game.make_move(vec![7, 4], vec![6, 4]);
-        print_board_moves(&game, &vec![6,4]);
-        game.make_move(vec![6, 4], vec![5, 4]);
-        print_board_moves(&game, &vec![5,4]);
-        game.make_move(vec![5, 4], vec![4, 3]);
-        print_board_moves(&game, &vec![4,3]);
-        game.make_move(vec![4, 3], vec![3, 3]);
-        print_board_moves(&game, &vec![3,3]);
-        game.make_move(vec![3, 3], vec![2, 3]);
-        print_board_moves(&game, &vec![2,3]);
-        game.make_move(vec![2, 3], vec![1, 3]);
-        print_board_moves(&game, &vec![1,3]);*/
-        
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![7,3]);
-        print_board_moves(&game, &vec![0,3]);
-        game.make_move(vec![1, 4], vec![3, 4]);
-        print_board_moves(&game, &vec![0,3]);
-        game.make_move(vec![0, 3], vec![2, 5]);
-        print_board_moves(&game, &vec![2,5]);
-        game.make_move(vec![6, 4], vec![5, 4]);
-        print_board_moves(&game, &vec![7,3]);
-        game.make_move(vec![7, 3], vec![4, 6]);
-        print_board_moves(&game, &vec![4,6])
-        //game.make_move(vec![0, 3], vec![, 4]);*/
-        
-        
-        
-        /*print_board(&game);
-        print_board_moves(&game, &vec![7,2]);
-        game.make_move(vec![6, 3], vec![5, 3]);
-        game.make_move(vec![7, 2], vec![4, 5]);
-        print_board_moves(&game, &vec![4, 5]);
-        game.make_move(vec![4, 5], vec![5, 4]);
-        print_board(&game);
-        print_board_moves(&game, &vec![5,4]);
-        //print_board_moves(&game, &vec![0,5]);*/
-
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![1,0]);
-        game.make_move(vec![1, 0], vec![3, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![3,0]);
-        print_board_moves(&game, &vec![6,0]);
-        game.make_move(vec![3, 0], vec![4, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![4,0]);
-        print_board_moves(&game, &vec![6,0]);
-        game.make_move(vec![4, 0], vec![5, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![5,0]);
-        print_board_moves(&game, &vec![6,0]);
-        game.make_move(vec![5, 0], vec![6, 1]);
-        print_board(&game);
-        print_board_moves(&game, &vec![6,1]);
-        print_board_moves(&game, &vec![6,0]);*/
-        
-        
-        
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![0,0]);
-        game.make_move(vec![1, 0], vec![2, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![0,0]);
-        game.make_move(vec![2, 0], vec![3, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![0,0]);
-        game.make_move(vec![0, 0], vec![2, 0]);
-        print_board(&game);
-        print_board_moves(&game, &vec![2,0]);*/
-
-        /*print_board(&game);
-        print_board_moves(&game, &vec![0,0]);
-        game.make_move(vec![0 as usize, 0 as usize], vec![3 as usize, 6 as usize]);
-        print_board(&game);
-        print_board_moves(&game, &vec![3,6]);
-        game.make_move(vec![3 as usize, 6 as usize], vec![6 as usize, 3 as usize]);
-        print_board(&game);
-        print_board_moves(&game, &vec![6,3]);
-        game.make_move(vec![6 as usize, 3 as usize], vec![7 as usize, 5 as usize]);
-        print_board(&game);
-        print_board_moves(&game, &vec![7,5]);*/
+        game.set_promotion(PieceType::BISHOP);
+        game.set_promotion(PieceType::KING);
+        assert_eq!(game.promotion_type, PieceType::BISHOP);
     }
+
+    #[test]
+    fn possible_moves_rook() {
+        let mut game = Game::new();
+        game.board[4][4] = Some(Piece {
+            color: Colour::Black,
+            piece_type: PieceType::ROOK
+        });
+        //print_board_moves(&game, &vec![4,4]);
+        let moves = game.get_possible_moves(&game.board, &vec![4,4], false);
+        //println!("{:?}", moves.unwrap());
+        assert_eq!(moves.unwrap(), [[4, 0], [4, 1], [4, 2], [4, 3], [2, 4], [3, 4], [5, 4], [6, 4], [4, 5], [4, 6], [4, 7]]);
+    }
+    #[test]
+    fn possible_moves_pawn() {
+        let mut game = Game::new();
+        game.board[5][3] = Some(Piece {
+            color: Colour::Black,
+            piece_type: PieceType::ROOK
+        });
+        //print_board_moves(&game, &vec![6,2]);
+        let moves = game.get_possible_moves(&game.board, &vec![6,2], false);
+        //println!("{:?}", moves.unwrap());
+        assert_eq!(moves.unwrap(), [[4, 2], [5, 2], [5, 3]]);
+    }
+    #[test]
+    fn possible_moves_bishop() {
+        let mut game = Game::new();
+        game.board[5][6] = Some(Piece {
+            color: Colour::Black,
+            piece_type: PieceType::BISHOP
+        });
+        //print_board_moves(&game, &vec![5,6]);
+        let moves = game.get_possible_moves(&game.board, &vec![5,6], false);
+        //println!("{:?}", moves.unwrap());
+        assert_eq!(moves.unwrap(), [[2, 3], [3, 4], [4, 5], [6, 5], [4, 7], [6, 7]]);
+    }
+    
+
+    #[test]
+    fn move_pieces() {
+        let mut game = Game::new();
+        println!("{:?}", &game);
+        println!("{:?}", game.make_move(vec![6,4], vec![4,4]));
+        println!("{:?}", &game);
+        println!("{:?}", game.make_move(vec![1,3], vec![3,3]));
+        println!("{:?}", &game);
+        println!("{:?}", game.make_move(vec![7,3], vec![4,6]));
+        println!("{:?}", &game);
+        println!("{:?}", game.make_move(vec![0,2], vec![4,6]));
+        println!("{:?}", &game);
+        assert_eq!(game.board[4][6], Some(Piece {color: Colour::Black, piece_type: PieceType::BISHOP}));
+    }
+
+    
 }
