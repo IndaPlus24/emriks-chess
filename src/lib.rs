@@ -135,6 +135,42 @@ impl Game {
         self.board[to[0]][to[1]] = Some(piece);
         self.board[from[0]][from[1]] = None;
 
+        
+
+        // Check if it is Check
+        //find king
+        let mut king = vec![10,10]; //Value out of range on purpose
+        for y in 0..8 {
+            for x in 0..8 {
+                if let Some(board_piece) = self.board[y][x] {
+                    if board_piece.piece_type == PieceType::KING && board_piece.color != piece.color {
+                        king = vec![y, x];
+                    }
+                }
+            }
+        }
+        for y in 0..8 {
+            for x in 0..8 {
+                if let Some(board_piece) = self.board[y][x] {
+                    if board_piece.color == piece.color {
+                        //It is one of your pieces
+                        let moves_option = self.get_possible_moves(&self.board, &vec![y, x], true);
+                        match moves_option {
+                            Some(moves) => {
+                                if moves.contains(&king) {
+                                    //Check detected!
+                                    return Some(GameState::Check);
+                                }
+                            },
+                            None => continue,
+                        }   
+                    }
+                }
+            }
+        }
+
+
+
 
         return Some(GameState::InProgress);
     }
@@ -1100,14 +1136,19 @@ mod tests {
 
         print_board(&game);
         print_board_moves(&game, &vec![1,5]);
-        game.make_move(vec![1, 5], vec![2, 5]);
-        game.make_move(vec![0, 4], vec![1, 5]);
-        game.make_move(vec![1, 5], vec![2, 4]);
-        game.make_move(vec![2, 4], vec![3, 4]);
+        println!("{:?}", game.make_move(vec![1, 5], vec![2, 5]));
+        print_board(&game);
+        println!("{:?}", game.make_move(vec![0, 4], vec![1, 5]));
+        print_board(&game);
+        println!("{:?}", game.make_move(vec![1, 5], vec![2, 4]));
+        print_board(&game);
+        println!("{:?}", game.make_move(vec![2, 4], vec![3, 4]));
         print_board(&game);
         print_board_moves(&game, &vec![3,4]);
-        game.make_move(vec![6, 4], vec![5, 4]);
-        game.make_move(vec![7, 3], vec![3, 7]);
+        println!("{:?}", game.make_move(vec![6, 4], vec![5, 4]));
+        print_board(&game);
+        println!("{:?}", game.make_move(vec![7, 3], vec![3, 7]));
+        print_board(&game);
         game.board[2][5] = Some(Piece {
             color: Colour::Black,
             piece_type: PieceType::ROOK,
