@@ -1,12 +1,7 @@
 // Template Author: Viola Söderlund
 // Template Modified by: Isak Larsson
 
-// TODO:
-// Check detection
-//      func isCheck()
-//      i slutet av varje make_move används isCheck() för att se om den ska returna InProgress eller Check
-//      isCheck tar som param en board
-//      när man använder get_moves så när den har skaffat movesen så använder den is_check och passar in 
+// TODO: 
 // Overall Gameflow
 //      turn indicator
 // Promotion
@@ -49,13 +44,10 @@ pub enum PieceType {
  */
 
 pub struct Game {
-    /* save board, active colour, ... */
-    board: Vec<Vec<Option<Piece>>>,//[[Option<Piece>, 8] ,8]//[Option<Piece>; 64],
+    board: Vec<Vec<Option<Piece>>>,
     active_colour: Colour,
     state: GameState,
-    /*black: u64,
-    white: u64,*/ // what are these for?
-    kings: u64,
+    promotion_type: PieceType,
 }
 
 impl Game {
@@ -65,9 +57,8 @@ impl Game {
             /* initialise board, set active colour to white, ... */
             board: vec![vec![None; 8]; 8],
             active_colour: Colour::White,
-
             state: GameState::InProgress,
-            kings: 1,
+            promotion_type: PieceType::QUEEN,
         };
         //Setting the correct pieces:
         //Pawns
@@ -119,6 +110,11 @@ impl Game {
         }
         let piece = piece_option.unwrap();
 
+        // Check if it is that color's turn
+        if piece.color != self.active_colour {
+            return None;
+        }
+
         // Check if legal
         let legal_moves_option = self.get_possible_moves(&self.board, &from, false);
         match legal_moves_option {
@@ -129,6 +125,15 @@ impl Game {
                 }
             },
             None => return None,
+        }
+
+        // Check if it wins the game
+        if let Some(board_piece) = self.board[to[0]][to[1]] {
+            if board_piece.piece_type == PieceType::KING {
+                self.board[to[0]][to[1]] = Some(piece);
+                self.board[from[0]][from[1]] = None;
+                return Some(GameState::GameOver);
+            }
         }
 
         // Update board
@@ -176,8 +181,11 @@ impl Game {
     }
 
     /// Set the piece type that a peasant becames following a promotion.
-    pub fn set_promotion(&mut self, piece: String) -> () {
-        ()
+    /// I've changed it from a string to a PieceType
+    pub fn set_promotion(&mut self, piece: PieceType) -> () {
+        if piece != PieceType::KING {
+            self.promotion_type = piece;
+        }
     }
 
     /// Get the current game state.
@@ -942,8 +950,45 @@ impl Game {
 impl fmt::Debug for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         /* build board representation string */
+        
+        let mut output: String = "".to_string();
 
-        write!(f, "")
+        output += "\n";
+        output += "|";
+        for i in 0..8 {
+            output += "-----";
+        }
+        output += "|";
+        for item in &self.board {
+            output += "\n";
+            output += "|";
+            for item_inner in item {
+                output += " ";
+                match item_inner {
+                    Some(piece) => {
+                        output.push(format!("{:?}", piece.color).chars().next().unwrap());
+                        output += "-";
+                        output.push(format!("{:?}", piece.piece_type).chars().next().unwrap());
+                    }, 
+                    None => output += "---",
+                }
+                
+                output += " ";
+            }
+            output += "|";
+            
+        }
+        output += "\n";
+        output += "|";
+        for i in 0..8 {
+            output += "-----";
+        }
+        output += "|";
+
+        output += "\n\n\n";
+
+
+        write!(f, "{}", output)
     }
 }
 
@@ -963,30 +1008,6 @@ mod tests {
     //Auxilirary functions
     fn print_board(game: &Game){
         //Prints the board:
-        /*println!("");
-        for i in 0..8 {
-            print!("|-----------|\t");
-        }
-        for item in &game.board {
-            println!("\n");
-            for item_inner in item {
-                match item_inner {
-                    Some(piece) => {
-                        print!(" {:?}", piece.color);
-                        print!(" ");
-                        print!("{:?}", piece.piece_type);
-                    }, 
-                    None => print!("\t\t"),
-                }
-                
-                print!("\t");
-            }
-            println!("\n");
-            for item_inner in item {
-                print!("|-----------|\t")
-            }
-            
-        }*/
         println!("");
         print!("|");
         for i in 0..8 {
@@ -1133,8 +1154,10 @@ mod tests {
     fn movement() {
         let mut game = Game::new();
 
+        println!("{:?}", game);
 
-        print_board(&game);
+
+        /*print_board(&game);
         print_board_moves(&game, &vec![1,5]);
         println!("{:?}", game.make_move(vec![1, 5], vec![2, 5]));
         print_board(&game);
@@ -1162,7 +1185,7 @@ mod tests {
             piece_type: PieceType::KING,
         });
         print_board(&game);
-        print_board_moves(&game, &vec![4,1]);
+        print_board_moves(&game, &vec![4,1]);*/
 
         /*print_board(&game);
         print_board_moves(&game, &vec![7,3]);

@@ -9,6 +9,6 @@ I've changed so that it takes &Vec<usize> as param and returns Option<Vec<Vec<us
 <h2>Y is [0] and X is [1]</h2>
 Didn't really intend on doing it like this but when I noticed, it was to late to change it to x,y. So y is first and x second. 
 
-
-
+<h2>set_promotion()</h2>
+I changed it from piece: String to piece: PieceType.
 
