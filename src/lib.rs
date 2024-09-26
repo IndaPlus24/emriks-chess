@@ -1,11 +1,6 @@
 // Template Author: Viola Söderlund
 // Template Modified by: Isak Larsson
 
-// TODO: 
-// Overall Gameflow
-//      turn indicator
-// Promotion
-
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -94,7 +89,6 @@ impl Game {
     /// move a piece and return the resulting state of the game.
     /// I have changed from it having String parameters to Vec parameters
     pub fn make_move(&mut self, from: Vec<usize>, to: Vec<usize>) -> Option<GameState> {
-        //let mut vec: Vec<String> = Vec::with_capacity(60);
         
         // Check gamestate
         if self.get_game_state() == GameState::GameOver {
