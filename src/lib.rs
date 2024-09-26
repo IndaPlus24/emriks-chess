@@ -1,6 +1,16 @@
 // Template Author: Viola Söderlund
 // Template Modified by: Isak Larsson
 
+// TODO:
+// Check detection
+//      func isCheck()
+//      i slutet av varje make_move används isCheck() för att se om den ska returna InProgress eller Check
+//      isCheck tar som param en board
+//      när man använder get_moves så när den har skaffat movesen så använder den is_check och passar in 
+// Overall Gameflow
+//      turn indicator
+// Promotion
+
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -110,7 +120,7 @@ impl Game {
         let piece = piece_option.unwrap();
 
         // Check if legal
-        let legal_moves_option = self.get_possible_moves(&from);
+        let legal_moves_option = self.get_possible_moves(&self.board, &from, false);
         match legal_moves_option {
             Some(legal_moves) => {
                 if !legal_moves.contains(&to) {
@@ -144,8 +154,8 @@ impl Game {
     ///
     /// (optional) Don't forget to include en passent and castling.
     /// I have changed from params being String to &Vec<usize> and return value to Option<Vec<Vec<usize>>>
-    pub fn get_possible_moves(&self, position: &Vec<usize>) -> Option<Vec<Vec<usize>>> {
-        let piece = self.board[position[0]][position[1]].unwrap();
+    pub fn get_possible_moves(&self, board: &Vec<Vec<Option<Piece>>>, position: &Vec<usize>, call_is_recursive: bool) -> Option<Vec<Vec<usize>>> {
+        let piece = board[position[0]][position[1]].unwrap();
         
         // ==========================
         // ROOK:
@@ -163,7 +173,7 @@ impl Game {
                         //It is on the same row or column
                         movement_positions.push(vec![y,x]);
 
-                        match self.board[y][x] {
+                        match board[y][x] {
                             Some(value) => blocking_pieces_positions.push(vec![y,x]),
                             None => {},   
                         }
@@ -216,7 +226,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -225,6 +235,50 @@ impl Game {
 
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                //find king
+                let mut king = vec![10,10]; //Value out of range on purpose
+                for y in 0..8 {
+                    for x in 0..8 {
+                        if let Some(board_piece) = board[y][x] {
+                            if board_piece.piece_type == PieceType::KING && board_piece.color == piece.color {
+                                king = vec![y, x];
+                            }
+                        }
+                    }
+                }
+                for action in movement_positions.clone() {
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(&king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 
             return Some(movement_positions);
 
@@ -253,7 +307,7 @@ impl Game {
                         match dist {
                             1 => movement_positions.push(vec![y,x]),
                             2 => {
-                                if (piece.color == Colour::Black && position[0] == 1 && self.board[y-1][x].is_none()) || (piece.color == Colour::White && position[0] == 6 && self.board[y+1][x].is_none()){
+                                if (piece.color == Colour::Black && position[0] == 1 && board[y-1][x].is_none()) || (piece.color == Colour::White && position[0] == 6 && board[y+1][x].is_none()){
                                     //The double movement is not blocked by a piece right in front of the pawn
                                     movement_positions.push(vec![y,x]);
                                 }
@@ -264,7 +318,7 @@ impl Game {
                             _ => continue
                         }
 
-                        match self.board[y][x] {
+                        match board[y][x] {
                             Some(value) => blocking_pieces_positions.push(vec![y,x]),
                             None => {},   
                         }
@@ -273,13 +327,13 @@ impl Game {
                     //diagonal (pawn attack squares)
                     else if position[1] == x+1 || position[1] == ((x as i32)-1) as usize {
                         if piece.color == Colour::Black && position[0] == ((y as i32)-1) as usize {
-                            if let Some(board_piece) = self.board[y][x] {
+                            if let Some(board_piece) = board[y][x] {
                                 attack_positions.push(vec![y,x]);
                             }
                             
                         }
                         else if piece.color == Colour::White && position[0] == y+1 {
-                            if let Some(board_piece) = self.board[y][x] {
+                            if let Some(board_piece) = board[y][x] {
                                 attack_positions.push(vec![y,x]);
                             }
                         } 
@@ -296,7 +350,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -305,6 +359,48 @@ impl Game {
 
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                //find king
+                let mut king = vec![10,10]; //Value out of range on purpose
+                for y in 0..8 {
+                    for x in 0..8 {
+                        if let Some(board_piece) = board[y][x] {
+                            if board_piece.piece_type == PieceType::KING && board_piece.color == piece.color {
+                                king = vec![y, x];
+                            }
+                        }
+                    }
+                }
+                for action in movement_positions.clone() {
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(&king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             return Some(movement_positions);
         }
@@ -326,7 +422,7 @@ impl Game {
                         //It is on the same diagonal
                         movement_positions.push(vec![y,x]);
 
-                        match self.board[y][x] {
+                        match board[y][x] {
                             Some(value) => blocking_pieces_positions.push(vec![y,x]),
                             None => {},   
                         }
@@ -393,7 +489,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -403,6 +499,48 @@ impl Game {
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
 
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                //find king
+                let mut king = vec![10,10]; //Value out of range on purpose
+                for y in 0..8 {
+                    for x in 0..8 {
+                        if let Some(board_piece) = board[y][x] {
+                            if board_piece.piece_type == PieceType::KING && board_piece.color == piece.color {
+                                king = vec![y, x];
+                            }
+                        }
+                    }
+                }
+                for action in movement_positions.clone() {
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(&king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
             return Some(movement_positions);
         }
 
@@ -422,7 +560,7 @@ impl Game {
                         //It is on the same diagonal
                         movement_positions.push(vec![y,x]);
 
-                        match self.board[y][x] {
+                        match board[y][x] {
                             Some(value) => blocking_pieces_positions.push(vec![y,x]),
                             None => {},   
                         }
@@ -431,7 +569,7 @@ impl Game {
                         //It is on the same row or column
                         movement_positions.push(vec![y,x]);
 
-                        match self.board[y][x] {
+                        match board[y][x] {
                             Some(value) => blocking_pieces_positions.push(vec![y,x]),
                             None => {},   
                         }
@@ -534,7 +672,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -543,6 +681,48 @@ impl Game {
 
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                //find king
+                let mut king = vec![10,10]; //Value out of range on purpose
+                for y in 0..8 {
+                    for x in 0..8 {
+                        if let Some(board_piece) = board[y][x] {
+                            if board_piece.piece_type == PieceType::KING && board_piece.color == piece.color {
+                                king = vec![y, x];
+                            }
+                        }
+                    }
+                }
+                for action in movement_positions.clone() {
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(&king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             return Some(movement_positions);
         }
@@ -579,7 +759,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -588,6 +768,39 @@ impl Game {
 
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                for action in movement_positions.clone() {
+                    let king = &action;
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                                
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             return Some(movement_positions);
         }
@@ -615,7 +828,7 @@ impl Game {
             // Find forbidden positions
             //Shouldn't be able to attack own color
             for pos in &movement_positions {
-                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                if let Some(board_piece) = board[pos[0]][pos[1]] {
                     if board_piece.color == piece.color {
                         forbidden_positions.push(pos.clone());
                     }
@@ -624,6 +837,48 @@ impl Game {
 
             //remove forbidden
             movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            //Check if move leads to a check on your king, it shouldn't be allowed in that case
+            if !call_is_recursive {
+                //find king
+                let mut king = vec![10,10]; //Value out of range on purpose
+                for y in 0..8 {
+                    for x in 0..8 {
+                        if let Some(board_piece) = board[y][x] {
+                            if board_piece.piece_type == PieceType::KING && board_piece.color == piece.color {
+                                king = vec![y, x];
+                            }
+                        }
+                    }
+                }
+                for action in movement_positions.clone() {
+                    let mut temp_board = board.clone();
+                    temp_board[action[0]][action[1]] = Some(piece);
+                    temp_board[position[0]][position[1]] = None;
+                    for y in 0..8 {
+                        for x in 0..8 {
+                            if let Some(board_piece) = temp_board[y][x] {
+                                if board_piece.color != piece.color {
+                                    //It is an enemy piece
+                                    let moves_option = self.get_possible_moves(&temp_board, &vec![y, x], true);
+                                    match moves_option {
+                                        Some(moves) => {
+                                            if moves.contains(&king) {
+                                                //Check detected!
+                                                //Remove that move from movement_positions since it would lead to a check 
+                                                if let Some(check_move_index) = movement_positions.iter().position(|pos| pos == &action){
+                                                    movement_positions.remove(check_move_index);
+                                                }
+                                            }
+                                        },
+                                        None => continue,
+                                    }   
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             return Some(movement_positions);
 
@@ -662,6 +917,10 @@ impl fmt::Debug for Game {
 
 #[cfg(test)]
 mod tests {
+    use crate::Colour;
+    use crate::Piece;
+    use crate::PieceType;
+
     use super::Game;
     use super::GameState;
 
@@ -730,7 +989,7 @@ mod tests {
 
     fn print_board_moves(game: &Game, position: &Vec<usize>){
 
-        let legal_moves = game.get_possible_moves(position);
+        let legal_moves = game.get_possible_moves(&game.board, position, false);
         //println!("{:?}", legal_moves);
 
 
@@ -838,7 +1097,43 @@ mod tests {
     fn movement() {
         let mut game = Game::new();
 
+
         print_board(&game);
+        print_board_moves(&game, &vec![1,5]);
+        game.make_move(vec![1, 5], vec![2, 5]);
+        game.make_move(vec![0, 4], vec![1, 5]);
+        game.make_move(vec![1, 5], vec![2, 4]);
+        game.make_move(vec![2, 4], vec![3, 4]);
+        print_board(&game);
+        print_board_moves(&game, &vec![3,4]);
+        game.make_move(vec![6, 4], vec![5, 4]);
+        game.make_move(vec![7, 3], vec![3, 7]);
+        game.board[2][5] = Some(Piece {
+            color: Colour::Black,
+            piece_type: PieceType::ROOK,
+        });
+        print_board(&game);
+        print_board_moves(&game, &vec![3,4]);
+        print_board_moves(&game, &vec![2,5]);
+        print_board_moves(&game, &vec![3,7]);
+        game.board[4][1] = Some(Piece {
+            color: Colour::Black,
+            piece_type: PieceType::KING,
+        });
+        print_board(&game);
+        print_board_moves(&game, &vec![4,1]);
+
+        /*print_board(&game);
+        print_board_moves(&game, &vec![7,3]);
+        game.make_move(vec![6, 4], vec![5, 4]);
+        print_board_moves(&game, &vec![7,3]);
+        print_board_moves(&game, &vec![1,5]);
+        game.make_move(vec![7, 3], vec![3, 7]);
+        print_board_moves(&game, &vec![3,7]);
+        print_board_moves(&game, &vec![1,5]);*/
+
+
+        /*print_board(&game);
         print_board_moves(&game, &vec![7,1]);
         print_board_moves(&game, &vec![0,6]);
         game.make_move(vec![7, 1], vec![5, 2]);
@@ -848,7 +1143,7 @@ mod tests {
         game.make_move(vec![0, 6], vec![2, 5]);
         print_board_moves(&game, &vec![2,5]);
         game.make_move(vec![2, 5], vec![3, 7]);
-        print_board_moves(&game, &vec![3,7]);
+        print_board_moves(&game, &vec![3,7]);*/
 
 
         /*print_board(&game);
