@@ -548,6 +548,52 @@ impl Game {
         }
 
 
+        // ==========================
+        // KING:
+
+        if piece.piece_type == PieceType::KING {
+
+            let mut movement_positions: Vec<Vec<usize>> = vec![];
+            let mut forbidden_positions: Vec<Vec<usize>> = vec![];
+
+            for x in 0..8 {
+                for y in 0..8 {
+                    //movement:
+                    if y+x == position[0]+position[1] || (y as i32)-(x as i32) == ((position[0] as i32) - (position[1] as i32)) {
+                        //It is on the same diagonal
+                        let dist = (position[1] as i32 - x as i32).abs();
+                        if dist == 1 {
+                            movement_positions.push(vec![y,x]);
+                        }
+                    }
+                    else if position[0] == y || position[1] == x {
+                        //It is on the same row or column
+                        let dist = ((position[0] as i32 - y as i32) + (position[1] as i32 - x as i32)).abs();
+                        if dist == 1 {
+                            movement_positions.push(vec![y,x]);
+                        }
+                    }
+                }
+            }
+
+            // Find forbidden positions
+            //Shouldn't be able to attack own color
+            for pos in &movement_positions {
+                if let Some(board_piece) = self.board[pos[0]][pos[1]] {
+                    if board_piece.color == piece.color {
+                        forbidden_positions.push(pos.clone());
+                    }
+                }
+            }
+
+            //remove forbidden
+            movement_positions.retain(|pos| !forbidden_positions.contains(pos));
+
+            return Some(movement_positions);
+        }
+        
+
+
 
         None
     }
@@ -649,6 +695,7 @@ mod tests {
     fn print_board_moves(game: &Game, position: &Vec<usize>){
 
         let legal_moves = game.get_possible_moves(position);
+        //println!("{:?}", legal_moves);
 
 
         println!("");
@@ -755,7 +802,27 @@ mod tests {
     fn movement() {
         let mut game = Game::new();
 
+
         print_board(&game);
+        print_board_moves(&game, &vec![7,4]);
+        print_board_moves(&game, &vec![0,4]);
+        game.make_move(vec![6, 4], vec![4, 4]);
+        print_board_moves(&game, &vec![7,4]);
+        game.make_move(vec![7, 4], vec![6, 4]);
+        print_board_moves(&game, &vec![6,4]);
+        game.make_move(vec![6, 4], vec![5, 4]);
+        print_board_moves(&game, &vec![5,4]);
+        game.make_move(vec![5, 4], vec![4, 3]);
+        print_board_moves(&game, &vec![4,3]);
+        game.make_move(vec![4, 3], vec![3, 3]);
+        print_board_moves(&game, &vec![3,3]);
+        game.make_move(vec![3, 3], vec![2, 3]);
+        print_board_moves(&game, &vec![2,3]);
+        game.make_move(vec![2, 3], vec![1, 3]);
+        print_board_moves(&game, &vec![1,3]);
+        
+
+        /*print_board(&game);
         print_board_moves(&game, &vec![7,3]);
         print_board_moves(&game, &vec![0,3]);
         game.make_move(vec![1, 4], vec![3, 4]);
@@ -766,7 +833,7 @@ mod tests {
         print_board_moves(&game, &vec![7,3]);
         game.make_move(vec![7, 3], vec![4, 6]);
         print_board_moves(&game, &vec![4,6])
-        //game.make_move(vec![0, 3], vec![, 4]);
+        //game.make_move(vec![0, 3], vec![, 4]);*/
         
         
         
