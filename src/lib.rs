@@ -39,10 +39,10 @@ pub enum PieceType {
  */
 
 pub struct Game {
-    board: Vec<Vec<Option<Piece>>>,
-    active_colour: Colour,
-    state: GameState,
-    promotion_type: PieceType,
+    pub board: Vec<Vec<Option<Piece>>>,
+    pub active_colour: Colour,
+    pub state: GameState,
+    pub promotion_type: PieceType,
 }
 
 impl Game {
